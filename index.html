@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Flight Tracker</title>
+    <link rel='stylesheet' href='/static/style.css'>
+</head>
+<body>
+    <h1>Live Flight Tracker</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Callsign</th>
+                <th>Altitude</th>
+                <th>Speed</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody id='flights-table'>
+        </tbody>
+    </table>
+    <script>
+        async function fetchFlights() {
+            const response = await fetch('/flights');
+            const flights = await response.json();
+            const tableBody = document.getElementById('flights-table');
+            tableBody.innerHTML = '';
+            flights.forEach(flight => {
+                const row = `<tr>
+                    <td>${flight[0]}</td>
+                    <td>${flight[1]}</td>
+                    <td>${flight[2]}</td>
+                    <td>${flight[3]}</td>
+                    <td>${flight[4]}</td>
+                    <td>${flight[5]}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+        setInterval(fetchFlights, 5000);
+        fetchFlights();
+    </script>
+</body>
+</html>
