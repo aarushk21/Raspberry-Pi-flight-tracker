@@ -1,47 +1,125 @@
 <!DOCTYPE html>
-<html lang='en'>
+<html lang="en">
 <head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Flight Tracker</title>
-    <link rel='stylesheet' href='/static/style.css'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspberry Pi Flight Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Live Flight Tracker</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Callsign</th>
-                <th>Altitude</th>
-                <th>Speed</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
-                <th>Timestamp</th>
-            </tr>
-        </thead>
-        <tbody id='flights-table'>
-        </tbody>
-    </table>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Flight Tracker</h1>
+        
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Aircraft</h5>
+                        <p class="card-text" id="total-aircraft">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Max Altitude</h5>
+                        <p class="card-text" id="max-altitude">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Average Speed</h5>
+                        <p class="card-text" id="avg-speed">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flight Table -->
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Callsign</th>
+                        <th>ICAO24</th>
+                        <th>Altitude (ft)</th>
+                        <th>Speed (kts)</th>
+                        <th>Heading</th>
+                        <th>Squawk</th>
+                        <th>Last Update</th>
+                    </tr>
+                </thead>
+                <tbody id="flight-table-body">
+                    <tr>
+                        <td colspan="7" class="text-center">Loading flights...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <script>
-        async function fetchFlights() {
-            const response = await fetch('/flights');
-            const flights = await response.json();
-            const tableBody = document.getElementById('flights-table');
-            tableBody.innerHTML = '';
-            flights.forEach(flight => {
-                const row = `<tr>
-                    <td>${flight[0]}</td>
-                    <td>${flight[1]}</td>
-                    <td>${flight[2]}</td>
-                    <td>${flight[3]}</td>
-                    <td>${flight[4]}</td>
-                    <td>${flight[5]}</td>
-                </tr>`;
-                tableBody.innerHTML += row;
-            });
+        function updateFlights() {
+            fetch('/api/flights')
+                .then(response => response.json())
+                .then(flights => {
+                    const tbody = document.getElementById('flight-table-body');
+                    tbody.innerHTML = '';
+                    
+                    if (flights.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No flights detected</td></tr>';
+                        return;
+                    }
+
+                    flights.forEach(flight => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${flight.callsign || 'Unknown'}</td>
+                            <td>${flight.icao24 || 'Unknown'}</td>
+                            <td>${flight.altitude ? flight.altitude.toLocaleString() : 'N/A'}</td>
+                            <td>${flight.speed ? Math.round(flight.speed) : 'N/A'}</td>
+                            <td>${flight.heading ? flight.heading + '°' : 'N/A'}</td>
+                            <td>${flight.squawk || 'N/A'}</td>
+                            <td>${new Date(flight.timestamp).toLocaleTimeString()}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching flights:', error);
+                    document.getElementById('flight-table-body').innerHTML = 
+                        '<tr><td colspan="7" class="text-center text-danger">Error loading flights</td></tr>';
+                });
         }
-        setInterval(fetchFlights, 5000);
-        fetchFlights();
+
+        function updateStats() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(stats => {
+                    document.getElementById('total-aircraft').textContent = stats.total_aircraft || 0;
+                    document.getElementById('max-altitude').textContent = 
+                        stats.max_altitude ? stats.max_altitude.toLocaleString() + ' ft' : 'N/A';
+                    document.getElementById('avg-speed').textContent = 
+                        stats.avg_speed ? Math.round(stats.avg_speed) + ' kts' : 'N/A';
+                })
+                .catch(error => {
+                    console.error('Error fetching stats:', error);
+                });
+        }
+
+        // Update data every 5 seconds
+        setInterval(() => {
+            updateFlights();
+            updateStats();
+        }, 5000);
+
+        // Initial load
+        updateFlights();
+        updateStats();
     </script>
 </body>
 </html>

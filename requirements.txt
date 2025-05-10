@@ -1,3 +1,6 @@
-flask
-requests
-sqlite3
+flask==2.0.1
+requests==2.26.0
+pyrtlsdr==0.2.93
+dump1090==0.1.0
+python-dateutil==2.8.2
+pytz==2021.3
